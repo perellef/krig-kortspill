@@ -1,0 +1,61 @@
+
+{
+    "maks_kort": 6,
+    "start_kort": 3,
+
+    "kort": {
+        "2 spillere": {
+            "forsterkning": {"antall": 8, "verdi": [1,2,3,4]},
+            "forsvar":      {"antall": 14, "verdi": [6,7,8,9]},
+            "angrep":       {"antall": 12, "verdi": [6,7,8,9]},
+            "gull":         {"antall": 5, "verdi": [null]}
+        },
+        "3 spillere": {
+            "forsterkning": {"antall": 10, "verdi": [1,2,3,4]},
+            "forsvar":      {"antall": 14, "verdi": [6,7,8,9]},
+            "angrep":       {"antall": 18, "verdi": [6,7,8,9]},
+            "gull":         {"antall": 7, "verdi": [null]}
+        },
+        "4 spillere": {
+            "forsterkning": {"antall": 12, "verdi": [1,2,3,4]},
+            "forsvar":      {"antall": 14, "verdi": [6,7,8,9]},
+            "angrep":       {"antall": 24, "verdi": [6,7,8,9]},
+            "gull":         {"antall": 9, "verdi": [null]}
+        }
+    },
+
+    "navn": {
+        "nord": "Nord",
+        "øst":  "Øst",
+        "vest": "Vest",
+        "sør":  "Syd"
+    },
+
+    "gjeldende spillere": {
+        "2 spillere": ["sør","nord"],
+        "3 spillere": ["sør","vest","nord"],
+        "4 spillere": ["sør","vest","nord","øst"]
+    },
+
+    "spillebrett": {
+        "dimensjoner": {
+            "brett": {
+                "høyde": 0,
+                "bredde": 0
+            },
+            "kort": {
+                "bredde": 50,
+                "høyde":  72
+            },
+            "venstre-meny": 200,
+            "margin": {
+                "liten": 2,
+                "medium": 5, 
+                "stor": 10,
+                "ekstra": 5,
+                "horisontal-tekst": 55,
+                "vertikal-tekst": 25
+            }
+        }
+    }
+}
