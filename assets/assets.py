@@ -1,140 +1,189 @@
 from PIL import Image, ImageDraw, ImageFont
 
-BREDDE,HOYDE = 675,1050 # størrelse til standardiserte Bridgekort
+DIR = "assets"
+UT = "kort"
 
-MARG_HVIT = 10
-MARG_KANT = 10
-MARG_INDRE = 100
-MIDTSKILLE = 80
-MELLOMSKILLE = 15
-NEDRE_INNRYKK = 80
-TEKST_INNRYKK = 40
-SYMBOL_STORRELSE = 50
+BREDDE,HOYDE = 74,112
 
-FNT1 = ImageFont.truetype("seguihis.ttf", size=500)
-FNT2 = ImageFont.truetype("seguihis.ttf", size=80)
-FNT3 = ImageFont.truetype("calibri.ttf", size=80)
-FNT4 = ImageFont.truetype("seguihis.ttf", size=90)
-
-GJENNOMSIKTIG = (255,255,255,0)
-SVART = (0,0,0)
-HVIT = (255,255,255) # hex: "#FFFFFF"
-
-GRA_GRONN = (128,165,120)
+MØRKEBLÅ = (63, 72, 204) 
 BLA = (11,181,255) # hex: "#0BB5FF"
-LYSE_ORANSJE = (255,215,153)
 ORANSJE = (255,215,0) # hex: #FFD700
 ROD = (244,69,40) # hex: "#F44528"
 GRONN = (4,252,132) # hex: #04fc84
-MORKE_GRONN = (23,174,77) # hex: #17AE4D
 
-def bytt_farge(img,farge,ny_farge):
-    data = img.getdata()
-    ny_data = []
-    for el in data:
-        if el[:3] == farge and el[3]!=0:
-            ny_data.append((*ny_farge,el[3]))
-            continue
-        ny_data.append(el)
-    img.putdata(ny_data)
+bakfarger = {"angrep": ROD, "forsvar": GRONN, "forsterkning": BLA, "gull": ORANSJE}
 
-def fargelegg_stridskort(img,farge,ny_farge1,ny_farge2): # hardkodet del
-    data = img.getdata()
-    ny_data = []
-    x = 0
-    y = 0
-    for el in data:
-        y = (y+1)%512
-        if y==0:
-            x += 1
+FNT1 = ImageFont.truetype("seguihis.ttf", size=500)
+FNT2 = ImageFont.truetype("seguihis.ttf", size=250)
+FNT3 = ImageFont.truetype("seguihis.ttf", size=80)
+FNT4 = ImageFont.truetype("calibri.ttf", size=80)
+FNT5 = ImageFont.truetype("seguihis.ttf", size=90)
 
-        if el[:3] == farge and el[3]>0:
-            if abs(256-x)<120 and abs(256-y)<120:
-                ny_data.append((*ny_farge1,el[3]))
-            else:
-                ny_data.append((*ny_farge2,el[3]))
-            continue
-        ny_data.append(el)
-    img.putdata(ny_data)
-            
-for verdier,kategori,farge in zip([["5"],["1","2","3","4"],["6","7","8","9"],["6","7","8","9"]],["vitalitet","forsterkning","angrep","forsvar"],[ORANSJE,BLA,ROD,GRONN]):
+
+oppskala = 4
+nedskala = 1
+def x4(x):
+    return oppskala*x
+
+def d4(x):
+    return round(x*nedskala/oppskala)
+
+def crop(img):
+    return img.crop(img.split()[3].getbbox())
+
+def fargelegg(image, rgb):
+    pixels = image.load()
+    for y in range(image.height):
+        for x in range(image.width):
+            r, g, b, a = pixels[x, y]
+            if a != 0:  # If not transparent
+                pixels[x, y] = (*rgb, a)  # Preserve original alpha
+    return image
+
+def lag_tekst(tekst, font, farge):
+    img = Image.new("RGBA", (1000, 1000))
+
+    tdraw = ImageDraw.Draw(img)
+    tdraw.text((20, 20), tekst, font=font, fill=farge)
+    return crop(img)
+
+def symbol_angrep():
+    kort = Image.new("RGBA", (1000,1000))
+
+    t = lag_tekst("/", FNT1, "white")
+    kort.alpha_composite(t.transpose(Image.FLIP_LEFT_RIGHT).rotate(10, expand=True) )
+    kort.alpha_composite(t.rotate(-10, expand=True), (40,0))
+
+    cropped = crop(kort.crop((0, 100, 1000, 330)))
+    return cropped
+
+def symbol_forsvar():
+    kort = Image.new("RGBA", (1000,1000))
+
+    t = lag_tekst("∕", FNT1, "white")
     
+    cropped = t.crop((0, 185, 1000, 1000))
+    
+    kort.paste(t)
+    kort.paste(cropped, (0, 100))
+    kort = crop(kort)
+
+    y_trim = 12
+    kort = crop(kort).crop((0,y_trim,kort.width,kort.height-y_trim))
+    return kort
+
+def symbol_forsterkning():
+    kort = Image.new("RGBA", (1000,1000))
+
+    t = lag_tekst("+", FNT1, "white")
+    kort.alpha_composite(t)
+    kort = crop(kort)
+
+    return kort
+
+SYMBOL = {
+    "angrep": symbol_angrep(),
+    "forsvar": symbol_forsvar(),
+    "forsterkning": symbol_forsterkning()
+}
+
+def rund_hjørner(img, r):
+    pixels = img.load()
+    for y in range(r):
+        for x in range(r):
+            dist = round(((r-(y+1))**2+(r-(x+1))**2)**(1/2), 1)
+            if dist > r:
+                pixels[x, y] = (0,0,0,0)
+                pixels[x4(BREDDE)-1-x, y] = (0,0,0,0)
+                pixels[x4(BREDDE)-1-x, x4(HOYDE)-1-y] = (0,0,0,0)
+                pixels[x, x4(HOYDE)-1-y] = (0,0,0,0)
+
+def illustrer_kort(korttype, verdi):
+    kort = Image.new("RGBA", (x4(BREDDE), x4(HOYDE)), bakfarger[korttype])
+
+    if korttype != "gull":
+        # midtre ikon
+        ikon = SYMBOL[korttype]
+
+        b = 30
+        ikon = ikon.resize((x4(b), round(x4(b*ikon.height/ikon.width))))
+        ikon.save("abc.png")
+        kort.alpha_composite(ikon, ((kort.width-ikon.width)//2, (kort.height-ikon.width)//2))
+
+        # hvite tekstfelter
+
+        margin = 1
+        høyde = 20
+        r = 4
+
+        draw = ImageDraw.Draw(kort)
+        draw.rounded_rectangle(
+            [(x4(margin), x4(margin)), (kort.width-x4(margin)-1, x4(margin+høyde)-1)],
+            radius=x4(r),
+            fill=(255, 255, 255),
+        )
+        draw.rounded_rectangle(
+            [(x4(margin), kort.height-x4(høyde+margin)-1), (kort.width-x4(margin)-1, kort.height-x4(margin)-1)],
+            radius=x4(r),
+            fill=(255, 255, 255),
+        )
+
+        x_padding = 4
+        tekststr = 22
+        
+        font = ImageFont.truetype("seguihis.ttf", size=x4(tekststr))
+
+        verditekst = fargelegg(lag_tekst(verdi, font, bakfarger[korttype]), bakfarger[korttype])
+        
+        kort.alpha_composite(verditekst, (x4(margin+x_padding), x4(margin)+(x4(høyde)-verditekst.height)//2))
+        kort.alpha_composite(verditekst.rotate(180, expand=True), (kort.width-x4(margin+x_padding)-verditekst.width, kort.height-x4(margin)-verditekst.height-(x4(høyde)-verditekst.height)//2))
+        
+        mellomrom = 6
+        ikon_b = 10
+
+        ikon = fargelegg(SYMBOL[korttype].copy(), bakfarger[korttype])
+        ikon = ikon.resize((x4(ikon_b), round(x4(ikon_b*ikon.height/ikon.width))))
+        
+        kort.alpha_composite(ikon, (x4(margin+x_padding)+verditekst.width+x4(mellomrom), x4(margin)+(x4(høyde)-ikon.height)//2))
+        kort.alpha_composite(ikon.rotate(180, expand=True), (kort.width-x4(margin+x_padding)-verditekst.width-x4(mellomrom)-ikon.width, kort.height-x4(margin)-ikon.height-(x4(høyde)-ikon.height)//2))
+
+    # kutt hjørner
+    r = 6
+    rund_hjørner(kort, x4(r))
+
+    # lagre
+    kort = kort.resize((d4(kort.width), d4(kort.height)))
+
+    if verdi == "":
+        filnavn = f"{korttype}"
+    else:
+        filnavn = f"{korttype}_{verdi}"
+
+    print(f" + {UT}/{filnavn}.png")
+    kort.save(f"{UT}/{filnavn}.png")
+
+
+def illustrer_bakside():
+    kort = Image.new("RGBA", (x4(BREDDE), x4(HOYDE)), MØRKEBLÅ)
+
+    tekststr = 80
+    font = ImageFont.truetype("seguihis.ttf", size=x4(tekststr))
+    t = lag_tekst("?", font, "white")
+
+    kort.alpha_composite(t, ((kort.width-t.width)//2, (kort.height-t.height)//2))
+
+    # rund hjørner og lagre
+    r = 6
+    rund_hjørner(kort, x4(r))
+    
+    kort = kort.resize((d4(kort.width), d4(kort.height)))
+
+    print(f" + {UT}/bakside.png")
+    kort.save(f"{UT}/bakside.png")
+
+for korttype,verdier in zip(["forsvar", "angrep", "forsterkning"], [[8,7,6,5], [8,7,6,5], [4,3,2,1]]):
     for verdi in verdier:
+        illustrer_kort(korttype, str(verdi))
 
-        img = Image.new(mode="RGBA",size=(BREDDE,HOYDE),color=GJENNOMSIKTIG)
-        tegn = ImageDraw.Draw(img)
-
-        # tegner den avrundede kortbakgrunnen
-
-        tegn.rounded_rectangle((0,0,BREDDE,HOYDE), fill=HVIT, radius=27) # hvit
-        tegn.rounded_rectangle((MARG_HVIT,MARG_HVIT,BREDDE-MARG_HVIT,HOYDE-MARG_HVIT), fill=farge, radius=15) # bak.farge
-
-        if kategori == "vitalitet":
-            tegn.rounded_rectangle((MARG_KANT+MARG_HVIT,MARG_INDRE+MARG_HVIT,BREDDE-MARG_HVIT-MARG_KANT,HOYDE-MARG_INDRE-MARG_KANT), fill=HVIT, radius=5, outline=GRA_GRONN, width=40) # bak.farge
-
-        # tegner tittel og enten kortverdi eller symbol foran
-
-        
-        if kategori != "vitalitet":
-            _,_,b1,h1 = tegn.textbbox(xy=(0,0),text=kategori.capitalize(),font=FNT2,anchor="lt")
-            _,_,b2,h2 = tegn.textbbox(xy=(0,0),text=verdi,font=FNT1,anchor="lt")
-            tegn.text(((BREDDE-b1)//2, (HOYDE-h1-MIDTSKILLE-h2-NEDRE_INNRYKK)//2),text=kategori.capitalize(),font=FNT2,fill=HVIT,anchor="lt")
-            tegn.text(((BREDDE-b2)//2, (HOYDE+h1+MIDTSKILLE-h2-NEDRE_INNRYKK)//2),text=verdi,font=FNT1,fill="white",anchor="lt")
-
-        else:
-            # tegner tittel og kortsymbol
-            
-            _,_,b1,h1 = tegn.textbbox(xy=(0,0),text=kategori.upper(),font=FNT4,anchor="lt")
-            _,_,b2,h2 = tegn.textbbox(xy=(0,0),text=verdi,font=FNT1,anchor="lt")
-            tegn.text(((BREDDE-b1)//2, (HOYDE-h1-h2-NEDRE_INNRYKK)//2),text=kategori.upper(),font=FNT4,fill=GRA_GRONN,anchor="lt")
-            
-            symbol_img = Image.open(f'Symbol_{kategori}.png').convert('RGBA') # henter symbol
-            fargelegg_stridskort(symbol_img,SVART,ORANSJE,MORKE_GRONN)
-
-            symbol_img = symbol_img.resize((h2,h2)) # eksperimentell verdi
-            img.paste(symbol_img, ((BREDDE-h2)//2, (HOYDE+h1+2*MIDTSKILLE-h2-NEDRE_INNRYKK)//2), symbol_img)
-
-        # tegner bokser nederst og øverst
-
-        tegn.rounded_rectangle((MARG_HVIT+MARG_KANT,MARG_HVIT+MARG_KANT,BREDDE-MARG_HVIT-MARG_KANT,MARG_INDRE), fill = 'white', radius=5)
-        tegn.rounded_rectangle((MARG_HVIT+MARG_KANT,HOYDE-MARG_INDRE, BREDDE-MARG_HVIT-MARG_KANT,HOYDE-MARG_HVIT-MARG_KANT), fill = 'white', radius=5)
-
-        # tegner kortverdi øverst
-
-        _,_,b,h = tegn.textbbox(xy=(0,0),text=verdi,font=FNT3,anchor="lt")
-        
-        bredde = TEKST_INNRYKK
-        hoyde = MARG_HVIT+MARG_KANT+(MARG_INDRE-MARG_HVIT-MARG_KANT-h)//2
-        
-        tegn.text((bredde,hoyde),text=verdi,font=FNT3,fill=farge,anchor="lt")
-        tegn.rectangle((bredde+1,hoyde+h+6,bredde+b-2,hoyde+h+8),fill=farge) # understrekning, eksperimentelle verdier
-
-        # tegner symbol øverst
-
-        if kategori == "vitalitet":
-            symbol_img = Image.new(mode="RGBA",size=(SYMBOL_STORRELSE,SYMBOL_STORRELSE),color=GJENNOMSIKTIG)
-        else:
-            symbol_img = Image.open(f'Symbol_{kategori}.png').convert('RGBA') # henter symbol    
-            bytt_farge(symbol_img,SVART,farge)
-            symbol_img = symbol_img.resize((SYMBOL_STORRELSE,SYMBOL_STORRELSE))    
-
-        hoyde = MARG_HVIT+MARG_KANT+(MARG_INDRE-MARG_KANT-SYMBOL_STORRELSE)//2
-        img.paste(symbol_img, (bredde+b+MELLOMSKILLE,hoyde), symbol_img)
-
-        # tegner kortverdi og symbol oppned nederst
-
-        img_hoyde = max(h,SYMBOL_STORRELSE)
-        oppned_img=Image.new('RGBA', (b+MELLOMSKILLE+SYMBOL_STORRELSE,img_hoyde), color="white")
-        d = ImageDraw.Draw(oppned_img)
-
-        d.text((0,(img_hoyde-h)//2),text=verdi,font=FNT3,fill=farge,anchor="lt")
-        oppned_img.paste(symbol_img, (b+MELLOMSKILLE,(img_hoyde-SYMBOL_STORRELSE)//2), symbol_img)
-        
-        w = oppned_img.rotate(180)
-
-        hoyde = HOYDE-MARG_INDRE+(MARG_INDRE-MARG_KANT-MARG_HVIT-h)//2
-        bredde = BREDDE-TEKST_INNRYKK-b
-        img.paste(w, (bredde-MELLOMSKILLE-SYMBOL_STORRELSE,hoyde))
-        tegn.rectangle((bredde+1,hoyde-6,bredde+b-2,hoyde-8),fill=farge) # understrekning, eksperimentelle verdier
-
-        img.save(f"{kategori}_{verdi}.png")
+illustrer_kort("gull", "")
+illustrer_bakside()

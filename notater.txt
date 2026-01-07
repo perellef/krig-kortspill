@@ -1,3 +1,0 @@
-- filleser leser json filen på nytt (er i spillvindu, oppett og spillekort)
-- fikse brettstorrelsen. Storskjerm er storre enn brettet nå.
-- Greit å ha antall kort delelig på 2n, der n er antall spillere

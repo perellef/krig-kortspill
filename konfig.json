@@ -6,35 +6,35 @@
     "kort": {
         "2 spillere": {
             "forsterkning": {"antall": 8, "verdi": [1,2,3,4]},
-            "forsvar":      {"antall": 14, "verdi": [6,7,8,9]},
-            "angrep":       {"antall": 12, "verdi": [6,7,8,9]},
+            "forsvar":      {"antall": 14, "verdi": [5,6,7,8]},
+            "angrep":       {"antall": 12, "verdi": [5,6,7,8]},
             "gull":         {"antall": 5, "verdi": [null]}
         },
         "3 spillere": {
             "forsterkning": {"antall": 10, "verdi": [1,2,3,4]},
-            "forsvar":      {"antall": 14, "verdi": [6,7,8,9]},
-            "angrep":       {"antall": 18, "verdi": [6,7,8,9]},
+            "forsvar":      {"antall": 14, "verdi": [5,6,7,8]},
+            "angrep":       {"antall": 18, "verdi": [5,6,7,8]},
             "gull":         {"antall": 7, "verdi": [null]}
         },
         "4 spillere": {
             "forsterkning": {"antall": 12, "verdi": [1,2,3,4]},
-            "forsvar":      {"antall": 14, "verdi": [6,7,8,9]},
-            "angrep":       {"antall": 24, "verdi": [6,7,8,9]},
+            "forsvar":      {"antall": 14, "verdi": [5,6,7,8]},
+            "angrep":       {"antall": 24, "verdi": [5,6,7,8]},
             "gull":         {"antall": 9, "verdi": [null]}
         }
     },
 
     "navn": {
-        "nord": "Nord",
-        "øst":  "Øst",
-        "vest": "Vest",
-        "sør":  "Syd"
+        "Nord": "Nord",
+        "Øst":  "Øst",
+        "Vest": "Vest",
+        "Sør":  "Syd"
     },
 
     "gjeldende spillere": {
-        "2 spillere": ["sør","nord"],
-        "3 spillere": ["sør","vest","nord"],
-        "4 spillere": ["sør","vest","nord","øst"]
+        "2 spillere": ["Sør","Nord"],
+        "3 spillere": ["Sør","Vest","Nord"],
+        "4 spillere": ["Sør","Vest","Nord","Øst"]
     },
 
     "spillebrett": {
